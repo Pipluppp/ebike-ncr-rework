@@ -17,17 +17,16 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         body {
-            background-color: #f8f4e8;
+            background-color: #fffcf0;
             /* Cream color similar to CartoDB Voyager tiles */
             margin: 0;
-            padding: 20px;
+            padding: 40px;
             font-weight: 400;
         }
 
         .article {
             max-width: 600px;
             margin: 0 auto 20px;
-            padding: 20px;
         }
 
         h1 {
@@ -45,8 +44,8 @@
 
         #map {
             height: 600px;
-            width: 800px;
-            margin: 0 auto;
+            max-width: 800px;
+            margin: 50px auto;
             border-radius: 12px;
             overflow: hidden;
             box-shadow:
@@ -72,6 +71,11 @@
     </div>
     <div id="map"></div>
     <div class="article">
+        <p>
+            E-bikes are now prohibited to ply through national, circumferential, and radial roads within Metro Manila,
+            directly affecting the mobility and routes available for e-bike users: changing their usual routes taken,
+            or at worst completely removing its possibility.
+        </p>
         <ul>
             <li>C1: Recto Avenue</li>
             <li>C2: Pres. Quirino Avenue</li>
@@ -95,13 +99,6 @@
             <li>Boni Avenue (Mandaluyong)</li>
             <li>España Blvd.</li>
         </ul>
-    </div>
-    <div class="article">
-        <p>
-            E-bikes are now prohibited to ply through national, circumferential, and radial roads within Metro Manila,
-            directly affecting the mobility and routes available for e-bike users: changing their usual routes taken,
-            or at worst completely removing its possibility.
-        </p>
     </div>
     <script>
         var map = L.map('map').setView([14.58, 121.05], 11);
