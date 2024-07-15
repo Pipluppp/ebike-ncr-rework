@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>News Article with Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="static/leaflet.contextmenu.css">
+    <style>
+        body {
+            background-color: #fffcf0;
+            /* Cream color similar to CartoDB Voyager tiles */
+            margin: 0;
+            padding: 40px;
+            font-weight: 400;
+        }
+
+        .article {
+            max-width: 600px;
+            margin: 0 auto 20px;
+        }
+
+        h1 {
+            color: #333;
+            font-family: 'Playfair Display';
+            font-size: 48px;
+        }
+
+        p,
+        li {
+            font-family: 'Alegreya Sans';
+            line-height: 1.6;
+            color: #8b8b8b;
+            font-size: 20px;
+        }
+
+        #map {
+            height: 600px;
+            max-width: 800px;
+            margin: 50px auto;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow:
+                4px 4px 8px 0 rgba(0, 0, 0, 0.25),
+                -8px -8px 12px 0 rgba(235, 230, 226, 0.3);
+        }
+
+        /* Background color before a tile loads  */
+        .leaflet-container {
+            background: #f0ecdf;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="article">
+        <h1>E-bike routing in Metro Manila</h1>
+        <p>
+            MMDA Regulation No. 24-022 prohibits e-bikes to ply through national, circumferential, and radial roads
+            within Metro Manila,
+            directly affecting the mobility and routes available for e-bike users by either altering their usual routes
+            taken,
+            or, at worst, completely removing its possiblity.
+        </p>
+    </div>
+    <div id="map"></div>
+    <div class="article">
+        <p>
+            E-bikes are now prohibited to ply through national, circumferential, and radial roads within Metro Manila,
+            directly affecting the mobility and routes available for e-bike users: changing their usual routes taken,
+            or at worst completely removing its possibility.
+        </p>
+        <ul>
+            <li>C1: Recto Avenue</li>
+            <li>C2: Pres. Quirino Avenue</li>
+            <li>C3: Araneta Avenue</li>
+            <li>C4: EDSA</li>
+            <li>C5: Katipunan/CP Garcia</li>
+            <li>C6: Southeast Metro Manila Expressway</li>
+            <li>R1: Roxas Boulevard</li>
+            <li>R2: Taft Avenue</li>
+            <li>R3: Osmeña Highway</li>
+            <li>R4: Shaw Boulevard</li>
+            <li>R5: Ortigas Avenue</li>
+            <li>R6: Magsaysay Blvd./Aurora Blvd.</li>
+            <li>R7: Quezon Ave./Commonwealth Ave.</li>
+            <li>R8: A. Bonifacio Ave.</li>
+            <li>R9: Rizal Ave.</li>
+            <li>R10: Del Pan/Marcos Highway/McArthur Highway</li>
+            <li>Elliptical Road</li>
+            <li>Mindanao Avenue</li>
+            <li>Marcos Highway</li>
+            <li>Boni Avenue (Mandaluyong)</li>
+            <li>España Blvd.</li>
+        </ul>
+    </div>
+    <script src="static/leaflet.contextmenu.js"></script>
+    <script>
+        let sourceCircleMarker, destMarker;
+        let clickCoordinates, sourceCoordinates, targetCoordinates;
+        let shortestPath;
+    </script>
+    <!-- Context menu handlers -->
+    <script>
+        // Context Menu event handlers
+        function centerMap(e) {
+            map.panTo(e.latlng);
+        }
+
+        function directionsFrom(e) {
+            if (sourceCircleMarker)
+                map.removeLayer(sourceCircleMarker);
+
+            sourceCoordinates = {
+                lat: e.latlng.lat,
+                lng: e.latlng.lng,
+            }
+            console.log(sourceCoordinates)
+
+            sourceCircleMarker = L.circleMarker([e.latlng.lat, e.latlng.lng], { color: 'black' }).addTo(map);
+            mapRoute()
+        }
+
+        function directionsTo(e) {
+            if (destMarker)
+                map.removeLayer(destMarker);
+
+            targetCoordinates = {
+                lat: e.latlng.lat,
+                lng: e.latlng.lng,
+            }
+            console.log(targetCoordinates)
+
+            destMarker = L.marker([e.latlng.lat, e.latlng.lng], {
+                icon: L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                })
+            }).addTo(map);
+            mapRoute()
+        }
+
+        function mapRoute() {
+            if (sourceCoordinates && targetCoordinates) {
+                fetch('/process_coords', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sourceLat: sourceCoordinates.lat,
+                        sourceLng: sourceCoordinates.lng,
+                        targetLat: targetCoordinates.lat,
+                        targetLng: targetCoordinates.lng
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data);
+
+                        if (shortestPath) {
+                            map.removeLayer(shortestPath)
+                        }
+
+                        let routeGeojson = data.route;
+
+                        shortestPath = L.geoJSON(routeGeojson, {
+                            style: function (feature) {
+                                return {
+                                    color: "#3d94ff",
+                                    weight: 12,
+                                    smoothFactor: 2
+                                };
+                            }
+                        }).addTo(map);
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        }
+
+        var map = L.map('map', {
+            zoom: 11,
+            contextmenu: true,
+            contextmenuWidth: 140,
+            contextmenuItems: [{
+                text: 'Center map here',
+                callback: centerMap
+            }, '-', {
+                text: 'Directions from',
+                callback: directionsFrom
+            }, {
+                text: 'Directions to',
+                callback: directionsTo
+            }]
+        }).setView([14.58, 121.05], 11);
+
+        // Add background tile layer with low opacity and no labels
+        var layer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20,
+            opacity: 0.3
+        }).addTo(map);
+
+        // Only display Metro Manila land boundary, using boundaryCanvas plugin
+        var ncr_geojson = 'https://raw.githubusercontent.com/faeldon/philippines-json-maps/master/2023/geojson/regions/hires/provdists-region-1300000000.0.1.json'
+        function addLandBoundary(url) {
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    // Add tile layer of Metro Manila no lables
+                    var osm = L.TileLayer.boundaryCanvas('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png', {
+                        boundary: data
+                    }).addTo(map);
+
+                    // Add the labels for all
+                    var layerLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                        subdomains: 'abcd',
+                        maxZoom: 20
+                    }).addTo(map);
+                })
+                .catch(error => console.error('Error loading GeoJSON:', error));
+        }
+        addLandBoundary(ncr_geojson)
+    </script>
+    <script src="static/BoundaryCanvas.js"></script>
+</body>
+
+</html>
